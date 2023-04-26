@@ -528,12 +528,37 @@ struct SDEpochObs
 
 struct DDObs {
     int ref_prn[2]{0,0};
+    int b_ref_idx[2]{0,0};
+    int r_ref_idx[2]{0,0};
     int dd_sat_num[2]{0,0};
-    double fixed_amb[MAXSATNUM * 4];
-    double res_amb[2], ratio;
-    float fix_rms[2];
-    double dpos[3];
+    double fixed_amb[MAXSATNUM * 4]{0.0};
+    double res_amb[2]{0.0,0.0}, ratio{0.0};
+    float fix_rms[2]{0.0,0.0};
+    double dpos[3]{0,0,0};
     bool fixed{false};
+};
+
+struct Config {
+    int pos_mode{0};        //0-spp, 1-rtk
+    bool online{false};     //file or network
+    double el_mask{0};      //elevation mask(deg)
+    double snr_mask_r{0.0}; //snr mask of rover
+    double snr_mask_b{0.0}; //snr mask of base
+    int iono_opt{0};        //0-none, 1-dual freq
+    int trop_opt{0};        //0-none, 1-hopfield
+    double ratio_thres{0.0};//AR ratio threshold
+    int sol_format{0};      //solution output format
+    bool out_head{false};   //output head of file or not
+    bool out_vel{false};    //output velocity or not
+    std::string infile_r;   //input rover file
+    std::string infile_b;   //input base file
+    std::string IP_r;       //IP of rover
+    std::string IP_b;       //IP of base
+    int port_r{0};          //port of rover
+    int port_b{0};          //port of base
+    int out_mode{0};        //way to show result
+    int basepos_type{0};    //0-llh, 1-xyz
+    double basepos[3]{0,0,0};//base position
 };
 /*-------------------------matrix function-------------------------*/
 void VectorAdd(const double* a, const double* b, double* c, int m);
@@ -591,7 +616,8 @@ void EarthRotate(const double cECI[3], double cECEF[3], NavSys sys, double tau);
 void DetectOutlier(Range* rCurr, const Range* rPrev);
 double Hopfield(double h, double elev);
 /*------------------------------------SPP and SPV----------------------------------------*/
-bool SPP(RcvRes* res, SatRes satres[], const RcvRes* init, const Range* range, const GPSEph geph[], const BDSEph beph[]);
+bool SPP(RcvRes *res, SatRes satres[], const RcvRes *init, const Range *range, const GPSEph geph[], const BDSEph beph[],
+         const Config& config);
 void LSQ(std::vector<LSQInput>& input, RcvRes* rcvres, int gsatnum, int bsatnum);
 void SPV(RcvRes* rcvres, const SatRes satres[], const Range* range);
 /*-------------------------------------Time Sync--------------------------------------*/
@@ -602,7 +628,7 @@ void DetectCycleSlip(SDEpochObs& prev_obs, SDEpochObs& curr_obs);
 /*--------------------------------Double Differencing----------------------------------*/
 bool
 DetermineRefSat(const Range &b_range, const Range &r_range, SatRes b_sat_res[], SatRes r_sat_res[],
-                const SDEpochObs &sd_obs, DDObs &dd_obs);
+                const SDEpochObs &sd_obs, DDObs &dd_obs, const Config &config);
 /*---------------------------------------RTK-----------------------------------------*/
 bool
 RTKFloat(RcvRes &r_res, const SatRes b_sat_res[], const SatRes r_sat_res[], const SDEpochObs &sd_obs,
@@ -610,4 +636,11 @@ RTKFloat(RcvRes &r_res, const SatRes b_sat_res[], const SatRes r_sat_res[], cons
 int lambda(int n, int m, const double* a, const double* Q, double* F, double* s);
 bool RTKFixed(RcvRes& r_res, const SatRes b_sat_res[], const SatRes r_sat_res[], const SDEpochObs &sd_obs,
               DDObs &dd_obs);
+/*------------------------------------Configure---------------------------------------*/
+bool ReadConfigureFile(const char* filename, Config& config);
+/*----------------------------------Format Control-----------------------------------*/
+void OutRcvSol(const RcvRes& rcvres, const Range& range, std::ostream& os = std::cout);
+void OutSatSol(const RcvRes& rcvres, const SatRes& satres, const Range& range, std::ostream& os = std::cout);
+void OutRTKSol(const GPSTime &b_time, const GPSTime &r_time, const RcvRes &rcv_res, const DDObs &dd_obs,
+               const Config &config, std::ostream &ofs = std::cout);
 #endif

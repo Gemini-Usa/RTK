@@ -23,7 +23,7 @@ std::set<T> Intersect(const std::initializer_list<std::set<T>>& sets)
 
 bool
 DetermineRefSat(const Range &b_range, const Range &r_range, SatRes b_sat_res[], SatRes r_sat_res[],
-                const SDEpochObs &sd_obs, DDObs &dd_obs)
+                const SDEpochObs &sd_obs, DDObs &dd_obs, const Config &config)
 {
     // necessary(1): cycle slip valid = 1
     // necessary(2): ephemeris OK
@@ -42,11 +42,11 @@ DetermineRefSat(const Range &b_range, const Range &r_range, SatRes b_sat_res[], 
     }
     for (int i = 0; i < b_range.sat_num; ++i) {
         auto& obs = b_range.obs[i];
-        if ((obs.parity[0] & obs.parity[1]) == 1) n2[obs.sys].insert(obs.prn);
+        if ((obs.parity[0] & obs.parity[1]) == 1 && obs.SNR[0] > config.snr_mask_b) n2[obs.sys].insert(obs.prn);
     }
     for (int i = 0; i < r_range.sat_num; ++i) {
         auto& obs = r_range.obs[i];
-        if ((obs.parity[0] & obs.parity[1]) == 1) n3[obs.sys].insert(obs.prn);
+        if ((obs.parity[0] & obs.parity[1]) == 1 && obs.SNR[1] > config.snr_mask_r) n3[obs.sys].insert(obs.prn);
     }
     for (int i = 0; i < MAXSATNUM; ++i) {
         auto& sat = b_sat_res[i];
@@ -61,6 +61,7 @@ DetermineRefSat(const Range &b_range, const Range &r_range, SatRes b_sat_res[], 
         if (n[i].empty()) dd_obs.dd_sat_num[i] = 0;
         else dd_obs.dd_sat_num[i] = static_cast<int>(n[i].size()) - 1;
     }
+
     if (n[0].empty() && n[1].empty()) return false;
     for (int i = 0; i < r_range.sat_num; ++i) {
         auto& obs = r_range.obs[i];
@@ -71,13 +72,16 @@ DetermineRefSat(const Range &b_range, const Range &r_range, SatRes b_sat_res[], 
             }
         }
     }
+    int rcv = 0;
     for (auto& sat_res : {b_sat_res, r_sat_res}) {
         for (int i = 0; i < MAXSATNUM; ++i) {
             auto& prn = sat_res[i].prn;
             auto& sys = sat_res[i].sys;
             if (sys == NavSys::UNK) continue;
             if (!n[sys].contains(prn)) sat_res[i].Status = false;
+            if (prn == dd_obs.ref_prn[sys]) rcv == 0 ? dd_obs.b_ref_idx[sys] = i : dd_obs.r_ref_idx[sys] = i;
         }
+        ++rcv;
     }
     return true;
 }

@@ -16,7 +16,8 @@
 /// <param name="beph">北斗星历</param>
 /// <param name="satres">待求卫星结果</param>
 /// <returns>true:解算成功 false:解算失败</returns>
-bool SPP(RcvRes* res, SatRes satres[], const RcvRes* init, const Range* range, const GPSEph geph[], const BDSEph beph[])
+bool SPP(RcvRes *res, SatRes satres[], const RcvRes *init, const Range *range, const GPSEph geph[], const BDSEph beph[],
+         const Config& config)
 {
 	if (range->sat_num < 4) return false;
 	double poserr = 1E-6; //定位误差
@@ -61,13 +62,13 @@ bool SPP(RcvRes* res, SatRes satres[], const RcvRes* init, const Range* range, c
 				//高度角计算,若|elevation|<15°,剔除该卫星
 				res->rcvposblh = XYZ2BLH(res->rcvpos, WGS84);
 				gres[prn - 1].first.elev = GetElev(res->rcvpos, gres[prn - 1].first.satpos, WGS84);
-				if (fabs(gres[prn - 1].first.elev) < 15 * D2R)
+				if (fabs(gres[prn - 1].first.elev) < config.el_mask * D2R)
 				{
 					gres[prn - 1].first.Status = false;
 					continue;
 				}
 				//对流层改正
-				gres[prn - 1].first.trop = Hopfield(res->rcvposblh.blh.c3, gres[prn - 1].first.elev);
+				if (config.trop_opt == 1) gres[prn - 1].first.trop = Hopfield(res->rcvposblh.blh.c3, gres[prn - 1].first.elev);
 				gres[prn - 1].first.tgd = 0.0;
 				//中间变量存储
 				input.SysType = GPS;
