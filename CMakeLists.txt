@@ -21,4 +21,4 @@ add_executable(RealTimeKinematic
         singlediff.cpp
         doublediff.cpp
         rtk.cpp
-        lambda.cpp)
+        lambda.cpp configure.cpp outformat.cpp)

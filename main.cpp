@@ -112,8 +112,8 @@ void rtkPos(const Config& config)
     std::vector<std::tuple<Range&, Range&, RcvRes&, RcvRes&, SatRes*, bool&>> spp_data;
     spp_data.emplace_back(b_range, b_temp_range, b_res, b_init, b_sat_res, b_is_spp);
     spp_data.emplace_back(r_range, r_temp_range, r_res, r_init, r_sat_res, r_is_spp);
-    std::ofstream float_file("data//Output//20230426-float.csv", std::ios::out);
-    std::ofstream fixed_file("data//Output//20230426-fixed.csv", std::ios::out);
+    std::ofstream float_file("data//Output//20230428-float.csv", std::ios::out);
+    std::ofstream fixed_file("data//Output//20230428-fixed.csv", std::ios::out);
     if (config.out_mode == 1) {
         if (!float_file.is_open() || !fixed_file.is_open()) {
             std::cout << "Could not open file!" << std::endl;

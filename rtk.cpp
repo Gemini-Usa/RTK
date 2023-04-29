@@ -42,11 +42,25 @@ void AccuracyAssess(const double W[], const double P[], int obs, int par, RcvRes
 
 void CalculateDOP(const double Q[], int par, RcvRes& res)
 {
-    res.PDOP = res.HDOP = res.VDOP = 0;
+    double H[9]{0.0}, HT[9]{0.0}, HQ[9]{0.0}, Q_a[9]{0.0}, Q_enu[9]{0.0};
     for (int i = 0; i < 3; ++i) {
-        res.PDOP += Q[i * par + i];
-        res.HDOP += i < 2 ? Q[i * par + i] : 0;
-        res.VDOP += i == 2 ? Q[i * par + i] : 0;
+        for (int j = 0; j < 3; ++j) {
+            Q_a[i * 3 + j] = Q[i * par + j];
+        }
+    }
+    XYZ r_b0;
+    r_b0.dxyz[0] = -2267804.5263;
+    r_b0.dxyz[1] = 5009342.3723;
+    r_b0.dxyz[2] = 3220991.8632;
+    res.PDOP = res.HDOP = res.VDOP = 0;
+    GetENUTransMat(r_b0, WGS84, H);
+    MatrixMultiply(H, Q_a, HQ, 3, 3, 3);
+    MatrixTranspose(H, HT, 3, 3);
+    MatrixMultiply(HQ, HT, Q_enu, 3, 3, 3);
+    for (int i = 0; i < 3; ++i) {
+        res.PDOP += Q_enu[i * 3 + i];
+        res.HDOP += i < 2 ? Q_enu[i * 3 + i] : 0;
+        res.VDOP += i == 2 ? Q_enu[i * 3 + i] : 0;
     }
     res.PDOP = sqrt(res.PDOP);
     res.HDOP = sqrt(res.HDOP);
@@ -161,12 +175,12 @@ bool RTKFixed(RcvRes& r_res, const SatRes b_sat_res[], const SatRes r_sat_res[],
     double p[2];
     p[0] = dd_obs.dd_sat_num[0]/(dd_obs.dd_sat_num[0]+1.0);
     p[1] = dd_obs.dd_sat_num[1]/(dd_obs.dd_sat_num[1]+1.0);
-    double p_major[2][2]{{p[0]/2.0/0.001,p[0]/2.0/0.001},
-                         {p[1]/2.0/0.001,p[1]/2.0/0.001}};
+    double p_major[2][2]{{p[0]/2.0,p[0]/2.0},
+                         {p[1]/2.0,p[1]/2.0}};
     p[0] = -1.0/(dd_obs.dd_sat_num[0]+1.0);
     p[1] = -1.0/(dd_obs.dd_sat_num[1]+1.0);
-    double p_cor[2][2]{{p[0]/2.0/0.001,p[0]/2.0/0.001},
-                       {p[1]/2.0/0.001,p[1]/2.0/0.001}};
+    double p_cor[2][2]{{p[0]/2.0,p[0]/2.0},
+                       {p[1]/2.0,p[1]/2.0}};
     auto W = std::make_unique<double[]>(2*sat_num);
     auto B = std::make_unique<double[]>(2*sat_num*3);
     auto P = std::make_unique<double[]>(2*sat_num*2*sat_num);
